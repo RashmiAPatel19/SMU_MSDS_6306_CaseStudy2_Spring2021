@@ -1,0 +1,295 @@
+---
+title: "Case Study 2"
+author: "Paul Swenson"
+date: "3/4/2020"
+output: html_document
+---
+
+#Libraries
+```{r}
+library(dplyr)     # for pipe
+library(tidyverse) # for dropna
+library(class)     # for knn
+library(caret)     # for confusion matrix
+library(ggplot2)   # for plotting
+library(dplyr)
+library(GGally)
+library(reshape2)  # for melt
+library(MASS)      # for stepAIC
+library(e1071)   # for naiveBayes
+library(jtools)    # for plot_summs
+library(readxl)    # for readxl
+```
+
+#Import data
+```{r}
+data = read.csv("./CaseStudy2-data.csv")
+# Note: the attrition column was converted to 0 for No and 1 for Yes
+#head(data)
+```
+
+#Histogram Colored (blue and red)
+```{r}
+data[2] <- lapply(data[2], as.numeric)
+data[5] <- lapply(data[5], as.numeric)
+data[7] <- lapply(data[7], as.numeric)
+data[8] <- lapply(data[8], as.numeric)
+data[10] <- lapply(data[10], as.numeric)
+data[11] <- lapply(data[11], as.numeric)
+data[12] <- lapply(data[12], as.numeric)
+data[14] <- lapply(data[14], as.numeric)
+data[15] <- lapply(data[15], as.numeric)
+data[16] <- lapply(data[16], as.numeric)
+data[18] <- lapply(data[18], as.numeric)
+data[20] <- lapply(data[20], as.numeric)
+data[21] <- lapply(data[21], as.numeric)
+data[22] <- lapply(data[22], as.numeric)
+data[25,] <- lapply(data[25,], as.numeric)
+
+
+left <- data %>% dplyr::select(c("Attrition", "OverTime", "StockOptionLevel", "MaritalStatus")) %>% filter(Attrition != "No")
+stayed <- data %>% dplyr::select(c("Attrition", "OverTime", "StockOptionLevel", "MaritalStatus")) %>% filter(Attrition == "No")
+
+#TODO: remove NA values when plotting
+plt <- ggplot(data, aes(x=JobRole, y=MonthlyIncome)) + 
+  geom_boxplot()
+plt + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+#TODO: count the number of employees in each role
+```
+
+# More EDA
+```{r}
+# I think these fields might be influential:
+#age
+#daily rate
+#distance from home
+#gender
+#marital status
+#num companies worked
+#performance rating
+#years since last promotion
+#years at company
+
+# Lets see what these columns look like
+summary(data$Age)
+#table(is.na(data$Age))
+#table(is.na(data$DailyRate))
+#table(is.na(data$DistanceFromHome))
+#table(is.na(data$Gender))                    #one missing
+#table(is.na(data$MaritalStatus))             #one missing
+#table(is.na(data$NumCompaniesWorked))
+#table(is.na(data$PerformanceRating))
+#table(is.na(data$YearsSinceLastPromotion))
+#table(is.na(data$YearsAtCompany))
+```
+# Helper functions
+```{r}
+normalize<-function(y) 
+{
+  x<-y[!is.na(y)]
+
+  x<-(x - min(x)) / (max(x) - min(x))
+
+  y[!is.na(y)]<-x
+
+  return(y)
+}
+```
+
+# KNN Classification
+```{r}
+# original columns used
+#c("Attrition", "Age", "DailyRate", "DistanceFromHome", "Education", "EnvironmentSatisfaction", "HourlyRate", "JobInvolvement", "JobLevel", "JobSatisfaction", "RelationshipSatisfaction", "YearsSinceLastPromotion", "TotalWorkingYears", "MonthlyRate")
+
+selected_columns = c("Attrition", "MonthlyRate", "JobSatisfaction")
+
+# 70% training data 30% test data
+split_perc = 0.7
+set.seed(78901)
+
+# select only the used columns
+knn_data <- data %>% drop_na %>% dplyr::select( selected_columns ) %>% apply(2, normalize) %>% data.frame()
+
+# split the dataset into training and testing datasets 
+trainIndices = sample(1:dim(knn_data)[1],round(split_perc * dim(knn_data)[1]))
+train_data = knn_data[trainIndices,]
+test_data = knn_data[-trainIndices,]
+
+# typical k value should be sqrt of the number of samples in your dataset
+k_value = ceiling(sqrt(length(train_data$Attrition)))
+
+# create scatterplot with labels
+#knn_data_dropna %>% ggplot(aes(x=YearsAtCompany, DailyRate, color=Attrition)) +
+#  geom_point()+ggtitle("Years With Company vs Daily Rate")
+
+# convert all columns to numeric values
+
+# create knn model and evaluate the fit
+classifications = knn(train_data[, selected_columns[-1]], test_data[, selected_columns[-1]], train_data$Attrition, prob = TRUE, k = k_value)
+class_table <- table(classifications,test_data$Attrition)
+confusionMatrix(class_table)
+
+# not a good fit... Let's try another model
+```
+
+
+#Naiive Bayes Classification
+```{r}
+# 70% training data 30% test data
+split_perc = 0.7
+set.seed(789011)
+
+# remove na values
+nb_data <- data %>% drop_na
+
+# view all probabilities of classes
+all.nb <-naiveBayes(data=data, Attrition ~ .)
+all.nb
+
+# looking at these values, the ones that stand out to me are:
+# stock options, marital status, overtime, and job level
+
+#remove columns
+keep_columns = c("Attrition", "OverTime", "StockOptionLevel", "MaritalStatus")
+
+# select columns
+#data_new <- data %>% select(selected_columns)
+data_dropped <- nb_data %>% dplyr::select(keep_columns)
+data_dropped$Attrition <- as.factor(data_dropped$Attrition)
+
+# split the dataset into training and testing datasets 
+trainIndices = sample(1:dim(data_dropped)[1],round(split_perc * dim(data_dropped)[1]))
+train_data = data_dropped[trainIndices,]
+test_data = data_dropped[-trainIndices,]
+
+
+# Train with NaiveBayes
+train_data.nb <- naiveBayes(data=train_data, Attrition ~ .)
+pred <- predict(train_data.nb, test_data)
+confusionMatrix(pred, test_data$Attrition)
+
+
+# Naive Bayes using caret
+attr_data <- data_dropped$Attrition
+predictor_data <- data_dropped %>% dplyr::select(-c("Attrition"))
+train_data.cnb <- train(predictor_data, attr_data, 'nb', ,trControl=trainControl(method='cv',number=10))
+
+# check individual variable contributions. I'll only keep the top 5-10
+#plot(varImp(train_data.cnb, scale = FALSE))
+
+# summary of fit
+#summary(train_data.cnb$results)
+```
+
+# Assess Relationships to income
+```{r}
+# first look at relationships between the data and assess linearity
+#data.m <- melt(data, "MonthlyRate")
+
+#ggplot(data.m, aes(value, MonthlyRate)) + 
+#  geom_line() + 
+#  facet_wrap(~variable, scales = "free")
+
+```
+
+#Regression
+```{r}
+#selected_columns = c("MonthlyIncome", "Age", "Education", "EnvironmentSatisfaction", "JobInvolvement", "JobLevel", "JobSatisfaction", "RelationshipSatisfaction", "YearsSinceLastPromotion", "TotalWorkingYears", "PerformanceRating", "TotalWorkingYears", "YearsAtCompany", "YearsInCurrentRole", "Department")
+
+drop_columns = c("Over18", "StandardHours", "MonthlyRate", "HourlyRate")
+
+# select columns
+#data_new <- data %>% select(selected_columns)
+test_data_dropped <- dplyr::select(data, -drop_columns)
+
+# split the dataset into training and testing datasets 
+trainIndices = sample(1:dim(test_data_dropped)[1],round(split_perc * dim(test_data_dropped)[1]))
+lm_train_data = test_data_dropped[trainIndices,]
+lm_test_data = test_data_dropped[-trainIndices,]
+
+# generate the full model
+train.full_lm <- lm(MonthlyIncome ~., data=lm_train_data)
+
+# The stepwise model performs much better than this one
+#summary(train.full_lm)
+
+# generate the stepwise model
+step.model <- stepAIC(train.full_lm, direction = "both", trace = FALSE)
+summary(step.model)
+
+# I'm going to remove the less significant columns:
+#   Business Travel, Daily Rate (shouldn't be used anyways), 
+lm_train_data <- dplyr::select(lm_train_data, -c( "BusinessTravel", "DailyRate" ))
+
+# generate the full model
+train.full_lm <- lm(MonthlyIncome ~., data=lm_train_data)
+summary(train.full_lm)
+
+# generate the stepwise model
+step.model <- stepAIC(train.full_lm, direction = "both", trace = FALSE)
+summary(step.model)
+
+# calculate the RMSE
+lm_test_data$PredictedMonthlyIncome <- predict(step.model, lm_test_data)
+pred_actual <- lm_test_data %>% dplyr::select( c("MonthlyIncome", "PredictedMonthlyIncome", "ID") )
+RMSE(pred_actual$PredictedMonthlyIncome, pred_actual$MonthlyIncome, na.rm=TRUE)
+
+step.model$coefficients
+plot_summs(step.model)
+```
+
+
+# Log transformation
+```{r}
+
+# try log transformation on the monthly income
+# The original RMSE was lower by about $400, so we will use that one
+
+#
+# dead code below
+#
+
+#test_data_dropped$MonthlyIncome <- log( test_data_dropped$MonthlyIncome )
+
+#trainIndices = sample(1:dim(test_data_dropped)[1],round(split_perc * dim(test_data_dropped)[1]))
+#lm_train_data = test_data_dropped[trainIndices,]
+#lm_test_data = test_data_dropped[-trainIndices,]
+
+# generate the full model
+#train.full_lm <- lm(MonthlyIncome ~., data=lm_train_data)
+#summary(train.full_lm)
+
+# generate the stepwise model
+#step.model <- stepAIC(train.full_lm, direction = "both", trace = FALSE)
+#summary(step.model)
+
+#lm_test_data$PredictedMonthlyIncome <- predict(step.model, lm_test_data)
+#pred_actual <- lm_test_data %>% dplyr::select( c("MonthlyIncome", "PredictedMonthlyIncome", "ID") )
+#RMSE(2.7183 ** pred_actual$PredictedMonthlyIncome, 2.7183 ** pred_actual$MonthlyIncome, na.rm=TRUE)
+```
+
+```{r}
+#TODO: check regression assumptions for the first model.
+
+```
+
+# Generate Prediction csvs
+```{r}
+# note: the "no attrition" dataset was modifed to contain 0 or 1 for attrition values and after saving the reverse was done
+attrition_data <- read.csv("./CaseStudy2CompSet No Attrition.csv")
+salary_data <- readxl::read_xlsx("./CaseStudy2CompSet No Salary.xlsx")
+
+attrition_data$PredAttrition <- predict(train_data.nb, attrition_data)
+attrition_data <- attrition_data %>% dplyr::select("ID", "PredAttrition")
+write.csv(attrition_data, "Case2PredictionsSwenson Attrition.csv", row.names=FALSE)
+
+salary_data$PredMonthlyIncome <- predict(step.model, salary_data)
+salary_data <- salary_data %>% dplyr::select("ID", "PredMonthlyIncome")
+write.csv(salary_data, "Case2PredictionsSwenson Salary.csv", row.names = FALSE)
+```
+
+
+
+
+
