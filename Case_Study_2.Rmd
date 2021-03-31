@@ -208,11 +208,49 @@ years_cuurent_manager
 
 ```
 ```{r}
-ggplot(case2,aes(x= JobRole,y= MonthlyIncome,fill=JobRole))+geom_col()+
-  theme(axis.text.x = element_text(angle = 90))
+summary(case2$JobRole)
 
-ggplot(case2,aes(y= JobRole,x= BusinessTravel,fill=JobRole))+geom_col()+
-  theme(axis.text.x = element_text(angle = 90))
+jobrole_healthcare_rep=case2%>%select(JobRole)%>%filter(JobRole=="Healthcare Representative")
+length(jobrole_healthcare_rep$JobRole)
+
+jobrole_hr=case2%>%select(JobRole)%>%filter(JobRole=="Human Resources")
+length(jobrole_hr$JobRole)
+
+jobrole_lab_tech=case2%>%select(JobRole)%>%filter(JobRole=="Laboratory Technician")
+length(jobrole_lab_tech$JobRole)
+
+jobrole_manager=case2%>%select(JobRole)%>%filter(JobRole=="Manager")
+length(jobrole_manager$JobRole)
+
+jobrole_manf_dir=case2%>%select(JobRole)%>%filter(JobRole=="Manufacturing Director")
+length(jobrole_manf_dir$JobRole)
+
+jobrole_research_dir=case2%>%select(JobRole)%>%filter(JobRole=="Research Director")
+length(jobrole_research_dir$JobRole)
+
+jobrole_research_scientist=case2%>%select(JobRole)%>%filter(JobRole=="Research Scientist")
+length(jobrole_research_scientist$JobRole)
+
+jobrole_sales_exe=case2%>%select(JobRole)%>%filter(JobRole=="Sales Executive")
+length(jobrole_sales_exe$JobRole)
+
+jobrole_sales_rep=case2%>%select(JobRole)%>%filter(JobRole=="Sales Representative")
+length(jobrole_sales_rep$JobRole)
+
+case2_jobrole_count=data.frame(Jobrole=c("Sales Executive","Research Director","Manufacturing Director","Research Scientist","Sales Representative","Healthcare Representative","Manager","Human Resources","Laboratory Technician"),Count=c(200,51,87,172,53,76,51,27,153))
+case2_jobrole_count
+
+ggplot(case2_jobrole_count,aes(x=Count,y=Jobrole,fill=Jobrole))+geom_col()+
+  xlab("Number of Employees Per Job Role")+ylab("Job Role for Employees")+
+  ggtitle("Number of Employees in each Job Role")
+
+summary(case2$MonthlyIncome)
+
+ 
+ggplot(case2,aes(x=MonthlyIncome,y=JobRole,fill=JobRole))+geom_point()+
+   theme(axis.text.x = element_text(angle = 90))
+
+
 
 ```
 ```{r}
