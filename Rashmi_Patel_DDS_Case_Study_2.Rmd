@@ -2,7 +2,7 @@
 title: "Doing Data Science Case Study 2"
 author: "Rashmi Patel"
 date: "3/26/2021"
-output: html_document
+output: html_document 
 ---
 
 ```{r setup, include=FALSE}
