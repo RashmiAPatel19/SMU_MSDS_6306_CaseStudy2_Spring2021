@@ -1,0 +1,276 @@
+---
+title: "6306 Doing Data Science Case Study 2"
+author: "Rashmi Patel"
+date: "4/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(dplyr)
+library(tidyverse)
+library(caret)
+library(DataExplorer)
+library(gplots)
+library(graphics)
+library(corrplot)
+library(olsrr)
+library(ggpubr)
+library(rstatix)
+library(dplyr)
+library(tidyverse)
+library(visdat)
+library(GGally)
+library(usmap)
+library(mice)
+library(VIM)
+library(plotly)
+library(caret)
+library(e1071)
+library(class)
+library(maps)
+library(mapproj)
+library(stringr)
+library(ggplot2) 
+library(ggthemes)
+library(table1)
+library(DataExplorer)
+
+
+
+``` 
+
+```{r}
+case2 = read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/CaseStudy2-data.csv", header = TRUE)
+head(case2)
+dim(case2)
+plot_histogram(case2)
+str(case2)
+
+#dropping the unwanted columns
+case2=select(case2,-c(Over18, EmployeeCount, StandardHours, EmployeeNumber))
+dim(case2)
+
+var_facs <- c("Attrition","EducationField","MaritalStatus","BusinessTravel","JobRole", "Department", "OverTime", "Gender")
+case2[,var_facs] <- lapply(case2[,var_facs] , factor, ordered = FALSE)
+
+#convert those factors to (i) integers for later
+case2$JobRole <- as.integer(case2$JobRole)
+case2$Department <- as.integer(case2$Department)
+case2$MaritalStatus <- as.integer(case2$MaritalStatus)
+case2$BusinessTravel <- as.integer(case2$BusinessTravel)
+case2$Education <- as.integer(case2$Education)
+case2$Attrition <- as.integer(case2$Attrition)
+case2$OverTime <- as.integer(case2$OverTime)
+case2$Gender <- as.integer(case2$Gender)
+case2$EducationField <- as.integer(case2$EducationField)
+
+
+str(case2)
+
+case2.correlation=cor(case2)
+case2.correlation
+
+```
+# Feature selection
+```{r}
+
+library(corrplot)
+corrplot(cor(case2),method="number",is.corr = FALSE)
+corrplot(cor(case2),method="circle",is.corr = FALSE)
+corrplot(cor(case2),method="shade",is.corr = FALSE)
+corrplot(cor(case2),method="color",is.corr = FALSE)
+corrplot(cor(case2),method="pie",is.corr = FALSE)
+
+```
+
+
+
+
+# Factors:
+## BusinessTravel
+## Department
+## EducationField
+## Gender
+## JobRole
+## MaritalStatus
+## Over18
+## OverTime
+```{r}
+
+
+```
+# Graphs
+```{r}
+summary(case2$JobRole)
+
+jobrole_healthcare_rep=case2%>%select(JobRole)%>%filter(JobRole=="Healthcare Representative")
+length(jobrole_healthcare_rep$JobRole)
+
+jobrole_hr=case2%>%select(JobRole)%>%filter(JobRole=="Human Resources")
+length(jobrole_hr$JobRole)
+
+jobrole_lab_tech=case2%>%select(JobRole)%>%filter(JobRole=="Laboratory Technician")
+length(jobrole_lab_tech$JobRole)
+
+jobrole_manager=case2%>%select(JobRole)%>%filter(JobRole=="Manager")
+length(jobrole_manager$JobRole)
+
+jobrole_manf_dir=case2%>%select(JobRole)%>%filter(JobRole=="Manufacturing Director")
+length(jobrole_manf_dir$JobRole)
+
+jobrole_research_dir=case2%>%select(JobRole)%>%filter(JobRole=="Research Director")
+length(jobrole_research_dir$JobRole)
+
+jobrole_research_scientist=case2%>%select(JobRole)%>%filter(JobRole=="Research Scientist")
+length(jobrole_research_scientist$JobRole)
+
+jobrole_sales_exe=case2%>%select(JobRole)%>%filter(JobRole=="Sales Executive")
+length(jobrole_sales_exe$JobRole)
+
+jobrole_sales_rep=case2%>%select(JobRole)%>%filter(JobRole=="Sales Representative")
+length(jobrole_sales_rep$JobRole)
+
+case2_jobrole_count=data.frame(Jobrole=c("Sales Executive","Research Director","Manufacturing Director","Research Scientist","Sales Representative","Healthcare Representative","Manager","Human Resources","Laboratory Technician"),Count=c(200,51,87,172,53,76,51,27,153))
+case2_jobrole_count
+
+ggplot(case2_jobrole_count,aes(x=Count,y=Jobrole,fill=Jobrole))+geom_col()+
+  xlab("Number of Employees Per Job Role")+ylab("Job Role for Employees")+
+  ggtitle("Number of Employees in each Job Role")
+
+
+
+ggplot(case2,aes(x=MonthlyIncome,y=JobRole,fill=JobRole))+geom_col()+xlim(0,20000)
+
+  ggplot(case2,aes(x=JobRole,fill=BusinessTravel))+geom_bar()+
+    theme(axis.text.x = element_text(angle = 90))
+  
+ case2$Education=as.character(case2$Education) 
+str(case2$Education)
+
+
+   ggplot(case2,aes(x=JobRole,fill=Education))+geom_bar()+
+    theme(axis.text.x = element_text(angle = 90))
+  
+  summary(case2$OverTime)
+  
+  ggplot(case2,aes(x=JobRole,fill=OverTime))+geom_bar()+
+    theme(axis.text.x = element_text(angle = 90))
+  
+  ggplot(case2,aes(x=JobRole,fill=Attrition))+geom_bar()+
+    theme(axis.text.x = element_text(angle = 90))+
+  
+  
+```
+# Correlation
+```{r}
+case2$Attrition[which(case2$Attrition=="Yes")]<-"1"
+case2$Attrition[which(case2$Attrition=="No")]<-"0"
+str(case2$Attrition)
+unique(case2$Attrition)
+
+case2$OverTime[which(case2$OverTime=="Yes")]<-"1"
+case2$OverTime[which(case2$OverTime=="No")]<-"0"
+str(case2$OverTime)
+unique(case2$OverTime)
+
+case2$Attrition=as.numeric(case2$Attrition)
+str(case2$Attrition)
+
+case2$OverTime=as.numeric(case2$Attrition)
+str(case2$OverTime)
+
+
+cor(case2$Attrition,case2$OverTime)
+cor(case2$Attrition,case2$MonthlyIncome)
+cor(case2$Attrition,case2$JobLevel)
+cor(case2$Attrition,case2$JobSatisfaction)
+cor(case2$Attrition,case2$YearsInCurrentRole)
+
+
+```
+# linear regression model
+```{r}
+
+fit_overtime=lm(Attrition~OverTime,data=case2)
+summary(fit_overtime)
+fit_dept=lm(Attrition~Department,data=case2)
+summary(fit_dept)
+fit_overtime=lm(Attrition~OverTime,data=case2)
+summary(fit_overtime)
+fit_overtime=lm(Attrition~OverTime,data=case2)
+summary(fit_overtime)
+fit_overtime=lm(Attrition~OverTime,data=case2)
+summary(fit_overtime)
+
+```
+# Graph for Attrition of Employees
+```{r}
+ggplot(case2,aes(x=Attrition))+geom_bar()
+length(which(case2$Attrition==1))
+length(which(case2$Attrition==2))
+
+```
+
+
+#Run Neive Bayes with 22 selected variables
+##Results
+###Mean Accuracy = 83.25%
+###Mean Sensitivity = 87.75%
+###Mean Specificity = 61.03%
+```{r}
+
+set.seed(443) # big prime no wammies
+iterations = 20
+numks = 20
+splitPerc = .70
+
+masterAcc = matrix(nrow = iterations, ncol = numks)
+masterSens = matrix(nrow = iterations, ncol = numks)
+masterSpec = matrix(nrow = iterations, ncol = numks)
+
+for(j in 1:iterations)
+{
+  trainIndices2 <- sample(1:dim(case2)[1],round(splitPerc * dim(case2)[1]))
+  train.k2 <- case2[trainIndices2,]
+  test.k2 <- case2[-trainIndices2,]
+  
+  for(i in 1:numks)
+  {
+    classifications = knn(train.k2[,2:20],test.k2[,2:20],train.k2$Attrition ,k=i,prob = TRUE)
+    table(test.k2$Attrition ,classifications)
+    CM = confusionMatrix(table(classifications, test.k2$Attrition))
+    masterAcc[j,i] = CM$overall[1]
+    masterSens[j,i] = mean(CM$byClass['Sensitivity'])
+    masterSpec[j,i] = mean(CM$byClass['Specificity'] )
+  }
+  
+}
+
+MeanAcc = colMeans(masterAcc)
+MeanSens = colMeans(masterSens)
+MeanSpec = colMeans(masterSpec)
+
+which.max(MeanAcc)
+max(MeanAcc)
+which.max(MeanSens)
+max(MeanSens)
+which.max(MeanSpec)
+max(na.omit(MeanSpec))
+```
+
+```{r}
+trainIndices = sample(seq(1:length(DDS_transformed$Age)),round(.7*length(DDS_transformed$Age)))
+trainDDS = DDS_transformed[trainIndices,]
+testDDS = DDS_transformed[-trainIndices,]
+
+#Model 1 including all features with significant p-values or importance
+features=c("OverTime","JobRoleBin","logMonthlyIncome","logTotalWorkingYears","MaritalStatus","logYearsInCurrentRole","JobLevel","JobInvolvement","YearsWithCurrManager","StockOptionLevel","Age","YearsAtCompany","JobSatisfaction","Department","WorkLifeBalance","EnvironmentSatisfaction","BusinessTravel","logDistanceFromHome")
+
+#Specificity=70.59 % Acc=86.59 Sensitivity=88.99
+model = naiveBayes(trainDDS[,features],as.factor(trainDDS$Attrition),laplace=1)
+confusionMatrix(table(predict(model,testDDS[,features]),testDDS$Attrition))
+
+```
