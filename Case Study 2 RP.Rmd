@@ -1,0 +1,153 @@
+---
+title: "CaseStudy 2 RP"
+author: "Rashmi Patel"
+date: "4/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(MASS)
+library(car)
+library(randomForest)
+library(cowplot)
+library(corrplot) 
+library(leaps)
+library(mlbench)
+library(dplyr)
+library(tidyverse)
+library(caret)
+library(DataExplorer)
+library(gplots)
+library(graphics)
+library(corrplot)
+library(olsrr)
+library(ggpubr)
+library(rstatix)
+library(visdat)
+library(GGally)
+library(usmap)
+library(mice)
+library(VIM)
+library(plotly)
+library(e1071)
+library(class)
+library(maps)
+library(mapproj)
+library(stringr)
+library(ggthemes)
+library(table1)
+library(RColorBrewer)
+
+```
+
+```{r}
+case2 = read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/CaseStudy2-data.csv", header = TRUE)
+head(case2)
+dim(case2)
+plot_histogram(case2)
+str(case2)
+```
+
+```{r}
+
+case2=select(case2,-c(ID,Over18, EmployeeCount, StandardHours, EmployeeNumber, DailyRate, HourlyRate, MonthlyRate, PerformanceRating))
+dim(case2)
+colnames(case2)
+
+```
+```{r}
+
+sum(is.na(case2))
+
+case2_numeric=case2
+var_facs <- c("Attrition","EducationField","MaritalStatus","BusinessTravel","JobRole", "Department", "OverTime", "Gender")
+case2_numeric[,var_facs] <- lapply(case2[,var_facs] , factor, ordered = FALSE)
+
+case2_numeric$JobRole <- as.integer(case2_numeric$JobRole)
+case2_numeric$Department <- as.integer(case2_numeric$Department)
+case2_numeric$MaritalStatus <- as.integer(case2_numeric$MaritalStatus)
+case2_numeric$BusinessTravel <- as.integer(case2_numeric$BusinessTravel)
+case2_numeric$Education <- as.integer(case2_numeric$Education)
+case2_numeric$Attrition <- as.integer(case2_numeric$Attrition)
+case2_numeric$OverTime <- as.integer(case2_numeric$OverTime)
+case2_numeric$Gender <- as.integer(case2_numeric$Gender)
+case2_numeric$EducationField <- as.integer(case2_numeric$EducationField)
+
+corrplot(cor(case2_numeric),order="alphabet")
+
+corrplot(cor(case2_numeric), type = "upper", order = "alphabet",
+         col = brewer.pal(n = 8, name = "RdBu"))
+```
+```{r}
+
+summary(case2_numeric$MonthlyIncome)
+
+cut(case2_numeric$MonthlyIncome, 
+    breaks = c(0,2500,5000,7500,999999), 
+    labels = c("Under_30k","30k_to_60k","60k_to_90k","Over_90k") 
+    ) -> case2_numeric$AnnualIncome
+
+dim(case2_numeric)
+```
+
+```{r}
+
+case2_numeric[,-c(28)] -> case2_attrition
+dim(case2_attrition)
+# Random forest for Attrition
+case2_attrition_features <- randomForest(Attrition ~., 
+                                     data = case2_attrition, 
+                                     importance = TRUE)
+varImpPlot(case2_attrition_features)
+importance(case2_attrition_features)
+
+colnames(case2)
+case2[,-c(2,28)] -> case2_salary
+case2_salary_features <- randomForest(MonthlyIncome ~., 
+                                     data = case2_salary, 
+                                     importance = TRUE)
+varImpPlot(case2_salary_features)
+importance(case2_salary_features)
+
+
+
+```
+```{r}
+ggplot(case2,aes(x=JobRole,y=MonthlyIncome,fill=JobRole))+geom_col()
+ggplot(case2,aes(x=MonthlyIncome,y=JobRole,col=JobRole))+geom_bar(stats="identity")
+
+
+
+```
+
+
+```{r}
+
+unique(case2$TotalWorkingYears)
+max(case2$TotalWorkingYears)
+min(case2$TotalWorkingYears)
+median(case2$TotalWorkingYears)
+
+cut(case2$TotalWorkingYears, 
+        breaks = c(0,5,15,30,50), 
+  labels = c("Less than 5 Yrs","Less than 10 Yrs","Less than 30 Yrs","Less than 40 Yrs") 
+ ) -> case2$WorkingYears
+
+ggplot(case2,aes(x=TotalWorkingYears,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+
+```
+
+```{r}
+
+ggplot(case2,aes(x=JobLevel,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+
+
+```
+
+```{r}
+
+```
