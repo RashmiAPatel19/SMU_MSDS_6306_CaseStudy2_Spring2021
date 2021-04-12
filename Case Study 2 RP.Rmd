@@ -41,7 +41,7 @@ library(table1)
 library(RColorBrewer)
 
 ```
-
+# Read the data from GitHub
 ```{r}
 case2 = read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/CaseStudy2-data.csv", header = TRUE)
 head(case2)
@@ -50,16 +50,35 @@ plot_histogram(case2)
 str(case2)
 ```
 
+# Check the variables with vague information and reove the variables
 ```{r}
-
+# Checking if the some employees are ages: But no employees were found under 18, so we will remove this variable
+unique(case2$Over18)
+# Checking for the unique employee count: But every employee count has value=1, so we will remove this variable
+unique(case2$EmployeeCount)
+#Checking the employee number: But no duplicate values were found, so we will remove this variable
+unique(case2$EmployeeNumber)
+# Checking he unique values in standard hours: But no values other than 80 found, so we will variable this variable
+unique(case2$StandardHours)
+# Checking the unique values of Performance rating: But the the values were kind of vague how it is assigned to employees,so we will remove this variable
+unique(case2$PerformanceRating)
+# Removing the DailyRate, HourlyRate, MonthlyRate because the the meaning is unclear 
 case2=select(case2,-c(ID,Over18, EmployeeCount, StandardHours, EmployeeNumber, DailyRate, HourlyRate, MonthlyRate, PerformanceRating))
 dim(case2)
 colnames(case2)
 
 ```
+# Plot hostogram for analyzing Attrition
+```{r}
+ggplot(case2,aes(x=Attrition,fill=Attrition))+geom_bar()+
+  geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
+
+
+```
+# Check the missing values and handling the missing values. 
 ```{r}
 
-sum(is.na(case2))
+table(is.na(case2))
 
 case2_numeric=case2
 var_facs <- c("Attrition","EducationField","MaritalStatus","BusinessTravel","JobRole", "Department", "OverTime", "Gender")
@@ -75,11 +94,11 @@ case2_numeric$OverTime <- as.integer(case2_numeric$OverTime)
 case2_numeric$Gender <- as.integer(case2_numeric$Gender)
 case2_numeric$EducationField <- as.integer(case2_numeric$EducationField)
 
-corrplot(cor(case2_numeric),order="alphabet")
 
 corrplot(cor(case2_numeric), type = "upper", order = "alphabet",
          col = brewer.pal(n = 8, name = "RdBu"))
 ```
+# Categorize the Monthly Income in "Under 30k, 30k to 60k, 60k to 90k, Over90k" by calculating the Yearly Income 
 ```{r}
 
 summary(case2_numeric$MonthlyIncome)
@@ -92,6 +111,115 @@ cut(case2_numeric$MonthlyIncome,
 dim(case2_numeric)
 ```
 
+# Plot for Annual Income by Job Role 
+```{r}
+
+case2$AnnualIncome=case2_numeric$AnnualIncome
+dim(case2)
+ggplot(case2,aes(fill=AnnualIncome,x=JobRole))+geom_bar(position="stack",stat="count")+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
+
+```
+
+# Plot for Annual Income by Total Working Years 
+```{r}
+
+unique(case2$TotalWorkingYears)
+max(case2$TotalWorkingYears)
+min(case2$TotalWorkingYears)
+median(case2$TotalWorkingYears)
+table(is.na(case2$TotalWorkingYears))
+cut(case2$TotalWorkingYears, 
+        breaks = c(-1,5,15,30,100), 
+  labels = c("Less than 5 Yrs","Less than 10 Yrs","Less than 30 Yrs","Less than 40 Yrs") 
+ ) -> case2$WorkingYears
+
+summary(case2$WorkingYears)
+table(is.na(case2$WorkingYears))
+
+ggplot(case2,aes(x=TotalWorkingYears,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+model1=lm(MonthlyIncome~TotalWorkingYears,data=case2)
+summary(model1)
+```
+# Plot for AnnualIncome by Total Wroking Years
+```{r}
+ggplot(case2,aes(fill=AnnualIncome,x=WorkingYears))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
+  facet_grid(rows=vars(AnnualIncome))+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
+```
+# Plot for Total Working Years by Job Role
+```{r}
+
+ggplot(case2,aes(fill=JobRole,x=WorkingYears))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(WorkingYears))
+
+
+
+```
+# Plot for MontlyIncome Based on JobLevel and the linear relationship between them
+```{r}
+ggplot(case2,aes(x=JobLevel,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+
+model2=lm(MonthlyIncome~JobLevel,data=case2)
+summary(model2)
+
+```
+# Plots for looking at the linear relationship between all variables with Monthly Income
+```{r}
+plot_vs_response <- function(x){
+  plot(case2_numeric$MonthlyIncome ~ case2_numeric[[x]], xlab = x)
+  lw1 <- loess(case2_numeric$MonthlyIncome ~ case2_numeric[[x]])
+  j <- order(case2_numeric[[x]])
+  lines(case2_numeric[[x]][j],lw1$fitted[j],col="red",lwd=3)
+}
+lapply(colnames(case2_numeric), plot_vs_response) 
+model3=lm(MonthlyIncome~YearsAtCompany,data=case2)
+summary(model3)
+
+model4=lm(MonthlyIncome~YearsInCurrentRole,data=case2)
+summary(model4)
+
+
+```
+When we plot all the numeric variables against MonthlyIncome, we observe the following:
+
+* Evidence of a strong relationship with JobLevel
+* Evidence of a moderate relationship with TotalWorkingYears
+* Evidence of a moderate relationship with YearsAtCompany
+* Evidence of a moderate relationship with YearsInCurrentRole
+
+# Plot for checking normality for Monthly Income and Attrition
+```{r}
+
+
+attrition.No.monthlyIncome=case2%>%dplyr::select(Attrition,MonthlyIncome)%>%filter(Attrition=="No")
+dim(attrition.No.monthlyIncome)
+attrition.No.monthlyIncome%>%summarise(Mean=mean(attrition.No.monthlyIncome$MonthlyIncome),
+                                       Median=median(attrition.No.monthlyIncome$MonthlyIncome),
+                                       Standard.Deviation=sd(attrition.No.monthlyIncome$MonthlyIncome),
+                                       IQR=IQR(attrition.No.monthlyIncome$MonthlyIncome))
+ggplot(attrition.No.monthlyIncome,aes(x=MonthlyIncome))+geom_histogram()
+qqnorm(attrition.No.monthlyIncome$MonthlyIncome)
+ggplot(attrition.No.monthlyIncome,aes(x=log(MonthlyIncome)))+geom_histogram()
+qqnorm(log(attrition.No.monthlyIncome$MonthlyIncome))
+
+attrition.Yes.monthlyIncome=case2%>%dplyr::select(Attrition,MonthlyIncome)%>%filter(Attrition=="Yes")
+dim(attrition.Yes.monthlyIncome)
+attrition.Yes.monthlyIncome%>%summarise(Mean=mean(attrition.Yes.monthlyIncome$MonthlyIncome),
+                                       Median=median(attrition.Yes.monthlyIncome$MonthlyIncome),
+                                       Standard.Deviation=sd(attrition.Yes.monthlyIncome$MonthlyIncome),
+                                       IQR=IQR(attrition.Yes.monthlyIncome$MonthlyIncome))
+ggplot(attrition.Yes.monthlyIncome,aes(x=log(MonthlyIncome)))+geom_histogram()
+qqnorm(attrition.Yes.monthlyIncome$MonthlyIncome)
+ggplot(attrition.Yes.monthlyIncome,aes(x=MonthlyIncome))+geom_histogram()
+qqnorm(log(attrition.Yes.monthlyIncome$MonthlyIncome))
+
+t.test(log(attrition.Yes.monthlyIncome$MonthlyIncome), log(attrition.No.monthlyIncome$MonthlyIncome), var.equal = F) 
+
+```
+# Removing the yearly income from the dataframe and creating the model for Attrition
 ```{r}
 
 case2_numeric[,-c(28)] -> case2_attrition
@@ -104,50 +232,182 @@ varImpPlot(case2_attrition_features)
 importance(case2_attrition_features)
 
 colnames(case2)
-case2[,-c(2,28)] -> case2_salary
+
+
+
+```
+# Looking at OverTime for Attrition
+```{r}
+ggplot(case2,aes(fill=Attrition,x=OverTime))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
+
+
+```
+# Looking at Annual Income for Attrition
+```{r}
+ggplot(case2,aes(fill=Attrition,x=AnnualIncome))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
+
+
+```
+# Looking at Stock Option Level for Attrition
+```{r}
+ggplot(case2,aes(fill=Attrition,x=StockOptionLevel))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
+
+
+```
+# Looking at Age for Attrition
+```{r}
+cut(case2$Age, 
+        breaks = c(17,30,40,50,60,100), 
+  labels = c("19 to 30 years"," 30 to 40 years","40 to 50 years","50 to 60 years","Above 60 years") 
+ ) -> case2$AgeEmp
+
+ggplot(case2,aes(fill=Attrition,x=AgeEmp))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
+
+
+```
+# Looking at Total Working Years for Attrition
+```{r}
+ggplot(case2,aes(fill=Attrition,x=WorkingYears))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
+
+
+```
+# Removing the yearly income from the dataframe and creating the model for Monthly income
+```{r}
+case2[,-c(2,28,29,30)] -> case2_salary
 case2_salary_features <- randomForest(MonthlyIncome ~., 
                                      data = case2_salary, 
-                                     importance = TRUE)
+ importance = TRUE)
+colnames(case2_salary)                                    
 varImpPlot(case2_salary_features)
 importance(case2_salary_features)
 
+```
+# Looking at Top 5 infuential variables correlation with  MonthlyIncome
+```{r}
+income.totalYears=data.frame(TotalWorkingYears=case2$TotalWorkingYears,MonthlyIncome=case2$MonthlyIncome,
+                             JobRole=case2_numeric$JobRole,JobLevel=case2$JobLevel,
+                             Age=case2$Age,YearsAtCompany=case2$YearsAtCompany)
+dim(income.totalYears)
+corrplot(cor(income.totalYears), order = "alphabet",
+         col = brewer.pal(n = 8, name = "RdBu"),method="number")
 
 
 ```
+# Looking at Job Level for Annual Income
 ```{r}
-ggplot(case2,aes(x=JobRole,y=MonthlyIncome,fill=JobRole))+geom_col()
-ggplot(case2,aes(x=MonthlyIncome,y=JobRole,col=JobRole))+geom_bar(stats="identity")
-
+ggplot(case2,aes(x=JobLevel,fill=AnnualIncome))+geom_bar(position="dodge",stat="count")+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(AnnualIncome))
 
 
 ```
-
-
+# Looking at Total Working Years for Annual Income
 ```{r}
-
-unique(case2$TotalWorkingYears)
-max(case2$TotalWorkingYears)
-min(case2$TotalWorkingYears)
-median(case2$TotalWorkingYears)
-
-cut(case2$TotalWorkingYears, 
-        breaks = c(0,5,15,30,50), 
-  labels = c("Less than 5 Yrs","Less than 10 Yrs","Less than 30 Yrs","Less than 40 Yrs") 
- ) -> case2$WorkingYears
-
-ggplot(case2,aes(x=TotalWorkingYears,y=MonthlyIncome,col=JobLevel))+geom_point()+
-  geom_smooth(method="lm")
-
-```
-
-```{r}
-
-ggplot(case2,aes(x=JobLevel,y=MonthlyIncome,col=JobLevel))+geom_point()+
-  geom_smooth(method="lm")
+ggplot(case2,aes(x=WorkingYears,fill=AnnualIncome))+geom_bar(position="dodge",stat="count")+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(AnnualIncome))
 
 
 ```
 
 ```{r}
+case2_salary -> case2_salary_reg
+# First create model on all variables
+lm(MonthlyIncome ~ ., data =  case2_salary_reg) -> case2_salary_lm
+summary(case2_salary_lm)
+# Then test for VIF
+vif(case2_salary_lm)
+```
+
+```{r}
+case2_salary_reg[,-c(3,11)] -> case2_salary_reg.df
+# create model on remaining variables
+lm(MonthlyIncome ~ ., data =  case2_salary_reg.df) -> case2_salary_lm
+summary(case2_salary_lm)
+# Then test for VIF
+vif(case2_salary_lm)
+
+```
+```{r}
+case2_salary_reg.df[,-c(17,20)] -> case2_salary_reg.df
+# create model on remaining variables
+lm(MonthlyIncome ~ ., data =  case2_salary_reg.df) -> case2_salary_lm
+summary(case2_salary_lm)
+# Then test for VIF
+vif(case2_salary_lm)
+
+```
+```{r}
+
+trainControl(method = "cv", number = 5) -> train.CV
+
+train(MonthlyIncome ~ .,
+  data = case2_salary_reg.df,
+  method = "lmStepAIC",
+  trControl = train.CV
+) -> case2.salary.stepwise
+
+# Final model
+summary(case2.salary.stepwise)
+
+# Results including RMSE of final model
+case2.salary.stepwise$results
+
+```
+```{r}
+
+train(MonthlyIncome ~ JobLevel + JobRole + TotalWorkingYears + YearsAtCompany + Age,
+  data = case2_salary,
+  method = "lm",
+  trControl = train.CV
+) -> case2_salary.stepwise.rf
+
+# Final model
+summary(case2_salary.stepwise.rf)
+
+# Results including RMSE of final model
+case2_salary.stepwise.rf$results
+
+```
+```{r}
+# generating predictions on test data
+case2$MonthlyIncome_LM <- predict(case2.salary.stepwise, newdata = case2)
+case2$MonthlyIncome_LM
+case2$MonthlyIncome_RF <- predict(case2_salary.stepwise.rf, newdata = case2)
+case2$MonthlyIncome_RF
+
+# Prediction Error for Linear Regression
+case2.LM.RMSE=RMSE(case2$MonthlyIncome_LM, case2$MonthlyIncome) / mean(case2$MonthlyIncome)
+case2.LM.RMSE
+# Prediction Error for Linear Regression
+case2.RF.RMSE=RMSE(case2$MonthlyIncome_RF, case2$MonthlyIncome) / mean(case2$MonthlyIncome)
+case2.RF.RMSE
+```
+```{r}
+NoSalary.df=read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/DDSCaseStudy2CompSet-NoSalary.csv",header=TRUE)
+head(NoSalary.df)
+dim(NoSalary.df)
+
+NoSalary.df$MonthlyIncome_LM <- predict(case2.salary.stepwise, newdata = NoSalary.df)
+head(NoSalary.df$MonthlyIncome_LM)
+NoSalary.df$MonthlyIncome_RF <- predict(case2_salary.stepwise.rf, newdata = NoSalary.df)
+head(NoSalary.df$MonthlyIncome_RF)
+
+```
+```{r}
+NoAttrition.df=read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/CaseStudy2CompSet%20No%20Attrition.csv",header=TRUE)
+head(NoAttrition.df)
+dim(NoAttrition.df)
+
+
+```
+```{r}
+NoAttrition.df$MonthlyIncome_LM <- predict(case2.salary.stepwise, newdata = NoAttrition.df)
+head(NoAttrition.df$MonthlyIncome_LM)
+NoAttrition.df$MonthlyIncome_RF <- predict(case2_salary.stepwise.rf, newdata = NoAttrition.df)
+head(NoAttrition.df$MonthlyIncome_RF)
 
 ```
