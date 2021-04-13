@@ -4,7 +4,7 @@ author: "Rashmi Patel"
 date: "4/5/2021"
 output: html_document
 ---
-
+# Load the required libraries
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -42,6 +42,10 @@ library(RColorBrewer)
 
 ```
 # Read the data from GitHub
+
+* The data is fetched from github account.
+* The data has 36 variables and 870 entries.
+* Plot the histogram for all the variables
 ```{r}
 case2 = read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/CaseStudy2-data.csv", header = TRUE)
 head(case2)
@@ -51,6 +55,15 @@ str(case2)
 ```
 
 # Check the variables with vague information and reove the variables
+
+* The variable Over18 has all Y in it as every employee is above 18 years, so we will remove the column.
+* The variable EmployeeCount has all 1 in its row, so we will remove the column.
+* Since the EmployeeNumber is unique for every employee it will not contribute to the model, so we will remove this column.
+* The variable StandardHours, has all values equal to 80, so we will remove it because it will not contribute anything to the model.
+* The variable Performance Rating has little vague information in it just 3 and 4, so we will remove it.
+* The variables DailyRate, MonthlyRate, and HourlyRate has no meaning as they are all same in sense and related to monthly income.
+* After removing these variables we are left with 27 variables and 870 entries.
+
 ```{r}
 # Checking if the some employees are ages: But no employees were found under 18, so we will remove this variable
 unique(case2$Over18)
@@ -68,7 +81,9 @@ dim(case2)
 colnames(case2)
 
 ```
-# Plot hostogram for analyzing Attrition
+# Plot histogram for analyzing Attrition
+
+* We have plotted the histogram of Attrition to know about the Attrition in this data. We found that 730 employees says No for Attrition in this data and 140 employees says yes to Attrition in this data..
 ```{r}
 ggplot(case2,aes(x=Attrition,fill=Attrition))+geom_bar()+
   geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
@@ -76,9 +91,24 @@ ggplot(case2,aes(x=Attrition,fill=Attrition))+geom_bar()+
 
 ```
 # Check the missing values and handling the missing values. 
-```{r}
 
+* We checked for missing values in the data and no missing values were found.
+* We converted the character variables into integer.
+* We then created a correlation plot to see the correlation between variables
+```{r}
+# Check for missing values
 table(is.na(case2))
+
+# Check for the total number of columns that are character and numeric in type
+numeric_var_case2=sum(sapply(case2[,1:27],is.numeric))
+numeric_var_case2
+char_var_case2=sum(sapply(case2[,1:27],is.character))
+char_var_case2
+# Check for the names of  columns that are character and numeric in type
+numeric_varname_case2=which(sapply(case2[,1:27],is.numeric))
+numeric_varname_case2
+char_varname_case2=which(sapply(case2[,1:27],is.character))
+char_varname_case2
 
 case2_numeric=case2
 var_facs <- c("Attrition","EducationField","MaritalStatus","BusinessTravel","JobRole", "Department", "OverTime", "Gender")
@@ -95,10 +125,17 @@ case2_numeric$Gender <- as.integer(case2_numeric$Gender)
 case2_numeric$EducationField <- as.integer(case2_numeric$EducationField)
 
 
-corrplot(cor(case2_numeric), type = "upper", order = "alphabet",
-         col = brewer.pal(n = 8, name = "RdBu"))
 ```
 # Categorize the Monthly Income in "Under 30k, 30k to 60k, 60k to 90k, Over90k" by calculating the Yearly Income 
+
+* We decided to categorize the monthly income in 4 parts and create new column in the data:
+
+** Under 30k for $0-$30000k
+** 30k to 60k for $30000k -$60000k
+** 60k to 90k for $60000k - $90000k
+** Over90k for $90000k and above
+
+* After creating new column we have 28 variables and 870 entries.
 ```{r}
 
 summary(case2_numeric$MonthlyIncome)
@@ -112,6 +149,10 @@ dim(case2_numeric)
 ```
 
 # Plot for Annual Income by Job Role 
+
+* We have plotted the bar graph to see the annual income of employees based on their job role in the company.
+
+** We see that every Research Director and Managers in the company have the highest pay which is over 90k.
 ```{r}
 
 case2$AnnualIncome=case2_numeric$AnnualIncome
@@ -119,9 +160,18 @@ dim(case2)
 ggplot(case2,aes(fill=AnnualIncome,x=JobRole))+geom_bar(position="stack",stat="count")+
   theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
 
+
 ```
 
 # Plot for Annual Income by Total Working Years 
+
+* We decided to categorize the total number of working years in the company:
+
+** Less than 5 Yrs for 0 to <=5 years
+** Less than 10 Yrs for 0 to <=5 years
+** Less than 30 Yrs for 0 to <=5 years
+** Less than 40 Yrs for 0 to <=5 years
+
 ```{r}
 
 unique(case2$TotalWorkingYears)
@@ -142,7 +192,7 @@ ggplot(case2,aes(x=TotalWorkingYears,y=MonthlyIncome,col=JobLevel))+geom_point()
 model1=lm(MonthlyIncome~TotalWorkingYears,data=case2)
 summary(model1)
 ```
-# Plot for AnnualIncome by Total Wroking Years
+# Plot for AnnualIncome by Total Working Years
 ```{r}
 ggplot(case2,aes(fill=AnnualIncome,x=WorkingYears))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
   facet_grid(rows=vars(AnnualIncome))+
@@ -157,40 +207,55 @@ ggplot(case2,aes(fill=JobRole,x=WorkingYears))+geom_bar(position="dodge",stat="c
 
 
 ```
-# Plot for MontlyIncome Based on JobLevel and the linear relationship between them
+# Coorelation plot for numeric variables 
+
+* We can see the highest correlation that exists for MonthlyIncome very much align to common sense:
+
+** MonthlyIncome & JobLevel = 0.95
+** MonthlyIncome & TotalWorkingYears = 0.78
+** MonthlyIncome & YearsAtCompany = 0.49
+** MonthlyIncome & YearsInCurrentRole = 0.36
+
 ```{r}
-ggplot(case2,aes(x=JobLevel,y=MonthlyIncome,col=JobLevel))+geom_point()+
-  geom_smooth(method="lm")
-
-model2=lm(MonthlyIncome~JobLevel,data=case2)
-summary(model2)
-
+corrplot(cor(case2_numeric[,numeric_varname_case2]), order = "alphabet",method="number",
+         col = brewer.pal(n = 8, name = "RdBu"))
 ```
-# Plots for looking at the linear relationship between all variables with Monthly Income
-```{r}
-plot_vs_response <- function(x){
-  plot(case2_numeric$MonthlyIncome ~ case2_numeric[[x]], xlab = x)
-  lw1 <- loess(case2_numeric$MonthlyIncome ~ case2_numeric[[x]])
-  j <- order(case2_numeric[[x]])
-  lines(case2_numeric[[x]][j],lw1$fitted[j],col="red",lwd=3)
-}
-lapply(colnames(case2_numeric), plot_vs_response) 
-model3=lm(MonthlyIncome~YearsAtCompany,data=case2)
-summary(model3)
-
-model4=lm(MonthlyIncome~YearsInCurrentRole,data=case2)
-summary(model4)
-
-
-```
-When we plot all the numeric variables against MonthlyIncome, we observe the following:
+# When we plot all the numeric variables against MonthlyIncome, we observe the following:
 
 * Evidence of a strong relationship with JobLevel
 * Evidence of a moderate relationship with TotalWorkingYears
 * Evidence of a moderate relationship with YearsAtCompany
 * Evidence of a moderate relationship with YearsInCurrentRole
 
+```{r}
+ggplot(case2,aes(x=JobLevel,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+
+ggplot(case2,aes(x=TotalWorkingYears,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+
+ggplot(case2,aes(x=YearsAtCompany,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+
+ggplot(case2,aes(x=YearsInCurrentRole,y=MonthlyIncome,col=JobLevel))+geom_point()+
+  geom_smooth(method="lm")
+
+
+```
+
 # Plot for checking normality for Monthly Income and Attrition
+
+We split the income values into separate vectors and run some exploratory analysis on them. We see that there are about 5 times as many employees who stay vs those who leave. It also appears the mean MonthlyIncome for employees who leave is somewhat lower: 
+
+* $4764.79 for empoyees who leave 
+* $6702 for those that stay
+
+There is also greater variance in between the two groups as well:
+* The "Yes" group having a standard deviation of $3786.389
+* The "No" group having a standard deviation of $4675.472 
+
+
+
 ```{r}
 
 
@@ -200,17 +265,35 @@ attrition.No.monthlyIncome%>%summarise(Mean=mean(attrition.No.monthlyIncome$Mont
                                        Median=median(attrition.No.monthlyIncome$MonthlyIncome),
                                        Standard.Deviation=sd(attrition.No.monthlyIncome$MonthlyIncome),
                                        IQR=IQR(attrition.No.monthlyIncome$MonthlyIncome))
-ggplot(attrition.No.monthlyIncome,aes(x=MonthlyIncome))+geom_histogram()
-qqnorm(attrition.No.monthlyIncome$MonthlyIncome)
-ggplot(attrition.No.monthlyIncome,aes(x=log(MonthlyIncome)))+geom_histogram()
-qqnorm(log(attrition.No.monthlyIncome$MonthlyIncome))
 
 attrition.Yes.monthlyIncome=case2%>%dplyr::select(Attrition,MonthlyIncome)%>%filter(Attrition=="Yes")
 dim(attrition.Yes.monthlyIncome)
 attrition.Yes.monthlyIncome%>%summarise(Mean=mean(attrition.Yes.monthlyIncome$MonthlyIncome),
                                        Median=median(attrition.Yes.monthlyIncome$MonthlyIncome),
-                                       Standard.Deviation=sd(attrition.Yes.monthlyIncome$MonthlyIncome),
+                                      Standard.Deviation=sd(attrition.Yes.monthlyIncome$MonthlyIncome),
                                        IQR=IQR(attrition.Yes.monthlyIncome$MonthlyIncome))
+
+
+```
+#Checking assumptions for Attrition and MonthlyIncome and doing T-test
+
+** Visually looking at the histogram and qqplot, it seems like the Attrition data has some right skewness. 
+
+** Visually looking at the histogram and qqplot, it seems like the Attrition data has some right skewness. 
+
+Because both distributions differ significantly from normality we log transform them in order to do a t-test and see if there is evidence that the distributions differ significantly from each other. 
+
+The QQ Plot of the log transformed MonthlyIncome for each group shows much better adherence to normality, and brings the variance of each group much closer together. 
+
+*The T-test itself shows there is a significant difference between the Monthly Incomes of "Yes" vs "No" attrition groups, p-value < 0.0001. This is strong evidence that MonthlyIncome has an effect on Attrition
+
+
+```{r}
+ggplot(attrition.No.monthlyIncome,aes(x=MonthlyIncome))+geom_histogram()
+qqnorm(attrition.No.monthlyIncome$MonthlyIncome)
+ggplot(attrition.No.monthlyIncome,aes(x=log(MonthlyIncome)))+geom_histogram()
+qqnorm(log(attrition.No.monthlyIncome$MonthlyIncome))
+
 ggplot(attrition.Yes.monthlyIncome,aes(x=log(MonthlyIncome)))+geom_histogram()
 qqnorm(attrition.Yes.monthlyIncome$MonthlyIncome)
 ggplot(attrition.Yes.monthlyIncome,aes(x=MonthlyIncome))+geom_histogram()
@@ -219,7 +302,21 @@ qqnorm(log(attrition.Yes.monthlyIncome$MonthlyIncome))
 t.test(log(attrition.Yes.monthlyIncome$MonthlyIncome), log(attrition.No.monthlyIncome$MonthlyIncome), var.equal = F) 
 
 ```
-# Removing the yearly income from the dataframe and creating the model for Attrition
+
+# Removing the annual income from the dataframe and creating the model for Attrition
+
+We will create a random forest model for looking at the top influential variables among the 27 variables which leads to Attrition after removing the annual income variable
+
+*Attrition*
+
+Top 5 most influential were: 
+
+* OverTime
+* MonthlyIncome
+* StockOptionLevel
+* Age
+* YearsWithCurrManager
+
 ```{r}
 
 case2_numeric[,-c(28)] -> case2_attrition
@@ -229,14 +326,13 @@ case2_attrition_features <- randomForest(Attrition ~.,
                                      data = case2_attrition, 
                                      importance = TRUE)
 varImpPlot(case2_attrition_features)
-importance(case2_attrition_features)
-
-colnames(case2)
-
-
 
 ```
 # Looking at OverTime for Attrition
+
+Visually looking at the graph it seems like the employees doing Over time are more likely to leave.
+
+Numerically approximately 57.14% of the employees doing overTime are likely to leave.
 ```{r}
 ggplot(case2,aes(fill=Attrition,x=OverTime))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
   theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
@@ -244,6 +340,11 @@ ggplot(case2,aes(fill=Attrition,x=OverTime))+geom_bar(position="dodge",stat="cou
 
 ```
 # Looking at Annual Income for Attrition
+
+Visually looking at the graph it seems like the employees earning Under 30k and between 30k to 60k are more likely to leave.
+
+Numerically it is approximately 70.71% of the employees with Attrition=Yes.
+
 ```{r}
 ggplot(case2,aes(fill=Attrition,x=AnnualIncome))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
   theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
@@ -251,6 +352,11 @@ ggplot(case2,aes(fill=Attrition,x=AnnualIncome))+geom_bar(position="dodge",stat=
 
 ```
 # Looking at Stock Option Level for Attrition
+
+Visually looking at the graph it seems like the employees having 0 Stock Option Level are more likely to leave. 
+
+Numerically it is approximately 70.0% of the employees with Attrition=Yes.
+
 ```{r}
 ggplot(case2,aes(fill=Attrition,x=StockOptionLevel))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
   theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
@@ -258,6 +364,11 @@ ggplot(case2,aes(fill=Attrition,x=StockOptionLevel))+geom_bar(position="dodge",s
 
 ```
 # Looking at Age for Attrition
+
+Visually looking at the graph it seems like the employees of 19 to 30 years age are more likely to leave. 
+
+Numerically it is approximately 40.71% of the employees with Attrition=Yes.
+
 ```{r}
 cut(case2$Age, 
         breaks = c(17,30,40,50,60,100), 
@@ -269,14 +380,30 @@ ggplot(case2,aes(fill=Attrition,x=AgeEmp))+geom_bar(position="dodge",stat="count
 
 
 ```
-# Looking at Total Working Years for Attrition
+# Looking at Years with current manager for Attrition
+
+Visually looking at the graph it seems like the employees working with current manager being less than equal to 1 year are more likely to leave. 
+
+Numerically it is approximately 37.14% of the employees with Attrition=Yes.
+
 ```{r}
-ggplot(case2,aes(fill=Attrition,x=WorkingYears))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
+ggplot(case2,aes(fill=Attrition,x=YearsWithCurrManager))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
   theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
 
 
 ```
 # Removing the yearly income from the dataframe and creating the model for Monthly income
+We will create a random forest model for looking at the top influential variables among the 27 variables which leads to higher Monthly Income after removing the annual income variable
+
+*Attrition*
+
+Top 5 most influential were: 
+
+* JobLevel
+* TotalWorkingYears
+* JobRole
+* Age
+* Department
 ```{r}
 case2[,-c(2,28,29,30)] -> case2_salary
 case2_salary_features <- randomForest(MonthlyIncome ~., 
