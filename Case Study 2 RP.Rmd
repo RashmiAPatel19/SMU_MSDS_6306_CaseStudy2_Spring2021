@@ -5,8 +5,8 @@ date: "4/5/2021"
 output: html_document
 ---
 # Load the required libraries
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(error = TRUE)
 
 library(MASS)
 library(car)
@@ -54,7 +54,7 @@ plot_histogram(case2)
 str(case2)
 ```
 
-# Check the variables with vague information and reove the variables
+# Check the variables with vague information and remove the variables
 
 * The variable Over18 has all Y in it as every employee is above 18 years, so we will remove the column.
 * The variable EmployeeCount has all 1 in its row, so we will remove the column.
@@ -124,7 +124,7 @@ case2_numeric$OverTime <- as.integer(case2_numeric$OverTime)
 case2_numeric$Gender <- as.integer(case2_numeric$Gender)
 case2_numeric$EducationField <- as.integer(case2_numeric$EducationField)
 
-
+str(case2_numeric)
 ```
 # Categorize the Monthly Income in "Under 30k, 30k to 60k, 60k to 90k, Over90k" by calculating the Yearly Income 
 
@@ -140,37 +140,23 @@ case2_numeric$EducationField <- as.integer(case2_numeric$EducationField)
 
 summary(case2_numeric$MonthlyIncome)
 
-cut(case2_numeric$MonthlyIncome, 
+case2_numeric$AnnualIncome=cut(case2_numeric$MonthlyIncome, 
     breaks = c(0,2500,5000,7500,999999), 
     labels = c("Under_30k","30k_to_60k","60k_to_90k","Over_90k") 
-    ) -> case2_numeric$AnnualIncome
+    )  
 
 dim(case2_numeric)
 ```
 
-# Plot for Annual Income by Job Role 
-
-* We have plotted the bar graph to see the annual income of employees based on their job role in the company.
-
-** We see that every Research Director and Managers in the company have the highest pay which is over 90k.
-```{r}
-
-case2$AnnualIncome=case2_numeric$AnnualIncome
-dim(case2)
-ggplot(case2,aes(fill=AnnualIncome,x=JobRole))+geom_bar(position="stack",stat="count")+
-  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
-
-
-```
 
 # Plot for Annual Income by Total Working Years 
 
 * We decided to categorize the total number of working years in the company:
 
-** Less than 5 Yrs for 0 to <=5 years
-** Less than 10 Yrs for 0 to <=5 years
-** Less than 30 Yrs for 0 to <=5 years
-** Less than 40 Yrs for 0 to <=5 years
+** Less than 5 Yrs for 0 to <5 years
+** Less than 15 Yrs for 0 to <15 years
+** Less than 30 Yrs for 0 to <30 years
+** Less than 40 Yrs for 0 to <40 years
 
 ```{r}
 
@@ -181,7 +167,7 @@ median(case2$TotalWorkingYears)
 table(is.na(case2$TotalWorkingYears))
 cut(case2$TotalWorkingYears, 
         breaks = c(-1,5,15,30,100), 
-  labels = c("Less than 5 Yrs","Less than 10 Yrs","Less than 30 Yrs","Less than 40 Yrs") 
+  labels = c("Less than 5 Yrs","Less than 15 Yrs","Less than 30 Yrs","Less than 40 Yrs") 
  ) -> case2$WorkingYears
 
 summary(case2$WorkingYears)
@@ -192,21 +178,8 @@ ggplot(case2,aes(x=TotalWorkingYears,y=MonthlyIncome,col=JobLevel))+geom_point()
 model1=lm(MonthlyIncome~TotalWorkingYears,data=case2)
 summary(model1)
 ```
-# Plot for AnnualIncome by Total Working Years
-```{r}
-ggplot(case2,aes(fill=AnnualIncome,x=WorkingYears))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
-  facet_grid(rows=vars(AnnualIncome))+
-  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
-```
-# Plot for Total Working Years by Job Role
-```{r}
-
-ggplot(case2,aes(fill=JobRole,x=WorkingYears))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
-  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(WorkingYears))
 
 
-
-```
 # Coorelation plot for numeric variables 
 
 * We can see the highest correlation that exists for MonthlyIncome very much align to common sense:
@@ -220,7 +193,7 @@ ggplot(case2,aes(fill=JobRole,x=WorkingYears))+geom_bar(position="dodge",stat="c
 corrplot(cor(case2_numeric[,numeric_varname_case2]), order = "alphabet",method="number",
          col = brewer.pal(n = 8, name = "RdBu"))
 ```
-# When we plot all the numeric variables against MonthlyIncome, we observe the following:
+# When we plot some the numeric variables against MonthlyIncome, we observe the following:
 
 * Evidence of a strong relationship with JobLevel
 * Evidence of a moderate relationship with TotalWorkingYears
@@ -247,7 +220,7 @@ ggplot(case2,aes(x=YearsInCurrentRole,y=MonthlyIncome,col=JobLevel))+geom_point(
 
 We split the income values into separate vectors and run some exploratory analysis on them. We see that there are about 5 times as many employees who stay vs those who leave. It also appears the mean MonthlyIncome for employees who leave is somewhat lower: 
 
-* $4764.79 for empoyees who leave 
+* $4764.79 for employees who leave 
 * $6702 for those that stay
 
 There is also greater variance in between the two groups as well:
@@ -315,18 +288,37 @@ Top 5 most influential were:
 * MonthlyIncome
 * StockOptionLevel
 * Age
-* YearsWithCurrManager
+* YearsAtCompany
 
 ```{r}
 
-case2_numeric[,-c(28)] -> case2_attrition
+case2_numeric -> case2_attrition
 dim(case2_attrition)
 # Random forest for Attrition
-case2_attrition_features <- randomForest(Attrition ~., 
+case2_attrition_features <- randomForest(Attrition ~.-AnnualIncome, 
                                      data = case2_attrition, 
                                      importance = TRUE)
 varImpPlot(case2_attrition_features)
 
+```
+# Looking at Top 5 infuential variables correlation with  Attrition
+
+* Looking at the correlation plot for the top 5 influential factors that leads to higher monthly income.
+
+** Attrition & OverTime = 0.27
+** Attrition &  MOnthlyIncome = -0.15
+** Attrition &  StockOptionLevel = -0.15
+** Attrition &  Age = -0.15
+** Attrition &  YearsAtCompany = -0.13
+
+
+```{r}
+attrition.factors=data.frame(OverTime=case2_numeric$OverTime,MonthlyIncome=case2$MonthlyIncome,
+                             StockOptionLevel=case2_numeric$StockOptionLevel,Attrition=case2_numeric$Attrition,
+                             Age=case2$Age,YearsAtCompany=case2$YearsAtCompany)
+str(attrition.factors)
+corrplot(cor(attrition.factors), order = "alphabet",
+         col = brewer.pal(n = 8, name = "RdBu"),method="number")
 ```
 # Looking at OverTime for Attrition
 
@@ -343,9 +335,11 @@ ggplot(case2,aes(fill=Attrition,x=OverTime))+geom_bar(position="dodge",stat="cou
 
 Visually looking at the graph it seems like the employees earning Under 30k and between 30k to 60k are more likely to leave.
 
-Numerically it is approximately 70.71% of the employees with Attrition=Yes.
+Numerically it is approximately 70.71% of the employees earning below 60k with Attrition=Yes.
 
 ```{r}
+case2$AnnualIncome=case2_numeric$AnnualIncome
+dim(case2)
 ggplot(case2,aes(fill=Attrition,x=AnnualIncome))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
   theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
 
@@ -355,7 +349,7 @@ ggplot(case2,aes(fill=Attrition,x=AnnualIncome))+geom_bar(position="dodge",stat=
 
 Visually looking at the graph it seems like the employees having 0 Stock Option Level are more likely to leave. 
 
-Numerically it is approximately 70.0% of the employees with Attrition=Yes.
+Numerically it is approximately 70.0% of the employees having stock option level=0with Attrition=Yes.
 
 ```{r}
 ggplot(case2,aes(fill=Attrition,x=StockOptionLevel))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
@@ -367,35 +361,41 @@ ggplot(case2,aes(fill=Attrition,x=StockOptionLevel))+geom_bar(position="dodge",s
 
 Visually looking at the graph it seems like the employees of 19 to 30 years age are more likely to leave. 
 
-Numerically it is approximately 40.71% of the employees with Attrition=Yes.
+Numerically it is approximately 40.71% of the employees having 19 to 30 years age with Attrition=Yes.
 
 ```{r}
-cut(case2$Age, 
+case2$AgeEmp=cut(case2$Age, 
         breaks = c(17,30,40,50,60,100), 
   labels = c("19 to 30 years"," 30 to 40 years","40 to 50 years","50 to 60 years","Above 60 years") 
- ) -> case2$AgeEmp
+ ) 
 
 ggplot(case2,aes(fill=Attrition,x=AgeEmp))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
   theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
 
 
 ```
-# Looking at Years with current manager for Attrition
+# Looking at Years At Company for Attrition
 
-Visually looking at the graph it seems like the employees working with current manager being less than equal to 1 year are more likely to leave. 
+Visually looking at the graph it seems like the employees working at the company being less than equal to 5 year are more likely to leave. 
 
-Numerically it is approximately 37.14% of the employees with Attrition=Yes.
+Numerically it is approximately 69.28% of the employees working less than 5 years with Attrition=Yes.
 
 ```{r}
-ggplot(case2,aes(fill=Attrition,x=YearsWithCurrManager))+geom_bar(position="dodge",stat="count",na.rm = TRUE)+
-  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(Attrition))
-
+case2$CompanyYears=cut(case2$YearsAtCompany, 
+        breaks = c(-1,5,15,30,100), 
+  labels = c("Less than 5 Yrs","Less than 15 Yrs","Less than 30 Yrs","Less than 40 Yrs") 
+ ) 
+summary(case2$YearsAtCompany)
+ggplot(case2,aes(fill=Attrition,x=CompanyYears))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle=90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))+
+facet_grid(rows = vars(Attrition))
 
 ```
-# Removing the yearly income from the dataframe and creating the model for Monthly income
-We will create a random forest model for looking at the top influential variables among the 27 variables which leads to higher Monthly Income after removing the annual income variable
 
-*Attrition*
+# Removing the self-generated variables and Attrition from the dataframe and creating the model for Monthly income
+We will create a random forest model for looking at the top influential variables among the 26 variables which leads to higher Monthly Income after removing the self-generated variables and Attrition.
+
+*Salary*
 
 Top 5 most influential were: 
 
@@ -403,9 +403,11 @@ Top 5 most influential were:
 * TotalWorkingYears
 * JobRole
 * Age
-* Department
+* YearsAtCompany
 ```{r}
-case2[,-c(2,28,29,30)] -> case2_salary
+dim(case2)
+colnames(case2)
+case2[,-c(2,28,29,30,31)] -> case2_salary
 case2_salary_features <- randomForest(MonthlyIncome ~., 
                                      data = case2_salary, 
  importance = TRUE)
@@ -415,6 +417,15 @@ importance(case2_salary_features)
 
 ```
 # Looking at Top 5 infuential variables correlation with  MonthlyIncome
+
+* Looking at the correlation plot for the top 5 influential factors that leads to higher monthly income.
+
+** MonthlyIncome & JobLevel = 0.95(strong relationship)
+** MonthlyIncome & TotalWorkingYears = 0.78(Moderate relationship)
+** MonthlyIncome & JobRole = -0.08(Moderate relationship)
+** MonthlyIncome & YearsAtCompany = 0.49(Moderate relationship)
+** MonthlyIncome & Age = 0.48(Moderate relationship)
+
 ```{r}
 income.totalYears=data.frame(TotalWorkingYears=case2$TotalWorkingYears,MonthlyIncome=case2$MonthlyIncome,
                              JobRole=case2_numeric$JobRole,JobLevel=case2$JobLevel,
@@ -425,21 +436,79 @@ corrplot(cor(income.totalYears), order = "alphabet",
 
 
 ```
-# Looking at Job Level for Annual Income
+# Looking at Job Level for Monthly Income
+
+Visually looking at the graph it seems like the employees at Job Level=1 have the earning less than 60k.
+
+Numerically it is approximately 74.26% of the employees at Job Level=1 have the earning less than 60k.
+
+Only 15.67% of the employees earning above 90k are at Job Level=5. No employees at job level=5 are earning below 90k.
+
 ```{r}
-ggplot(case2,aes(x=JobLevel,fill=AnnualIncome))+geom_bar(position="dodge",stat="count")+
-  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(AnnualIncome))
+ggplot(case2,aes(x=JobLevel,fill=AnnualIncome))+geom_bar(position="stack",stat="count")+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))+facet_grid(rows = vars(AnnualIncome))
 
 
 ```
-# Looking at Total Working Years for Annual Income
+# Plot for Monthly Income by Total Working Years
+
+* We have plotted the bar graph to see the annual income of employees based on their total working years in the company.
+
+** We found that only 10.59% of the employees earning above 90k are working in the company for more than 30 years. None employees are earning below 90k  who are working in the company for more than 30 years.
+** We also found that none of the employees are earning above 60k who have been working less than 5 years in the company.
 ```{r}
-ggplot(case2,aes(x=WorkingYears,fill=AnnualIncome))+geom_bar(position="dodge",stat="count")+
-  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_dodge(width=1))+facet_grid(rows = vars(AnnualIncome))
+ggplot(case2,aes(fill=AnnualIncome,x=WorkingYears))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
+  facet_grid(rows=vars(AnnualIncome))+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
+```
+# Plot for Monthly Income by Job Role 
+
+* We have plotted the bar graph to see the annual income of employees based on their job role in the company.
+
+** We found that only 27.12% of the 870 employees are earning above 90k.
+** We also found that every Research Director and Managers in the company have the highest pay which is over 90k.
+** We see that no sales representative earn over 90k, in which 98.11% earn below 60k and only 1.89% employees earn 60k to 90k.
+** No healthcare representative anf Manufacturing director and Research Scientist earn below 30k.
+
+```{r}
+ggplot(case2,aes(fill=AnnualIncome,x=JobRole))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
+  facet_grid(rows=vars(AnnualIncome))+
+  theme(axis.text.x = element_text(angle = 90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))
+```
+# Looking at Years At Company for MonthlyIncome
+
+Visually looking at the graph it seems like the employees working at the company being less than equal to 5 year are more likely to earn below 30k. 
+
+Approximately 27.19% of the employees working at the company for less than 5 years are likely to earn below 30k.
+
+Only 3.38% of the employees earning above 90k are working at the company for more than 30 years.
+```{r}
+ggplot(case2,aes(fill=AnnualIncome,x=CompanyYears))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle=90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))+
+facet_grid(rows = vars(AnnualIncome))
+
+```
+# Looking at Age for Monthly Income
+
+Only 7.65% of the employees having 19 to 30 years age earn above 90k and approximately 31.53% of the employees earn below 30k.
+
+We found that 57.33% of the employees having age 50 to 60 years are earning above 90k.
+
+```{r}
+
+ggplot(case2,aes(fill=AnnualIncome,x=AgeEmp))+geom_bar(position="stack",stat="count",na.rm = TRUE)+
+  theme(axis.text.x = element_text(angle=90))+geom_text(aes(label=..count..),stat="count",position=position_stack(0.5))+
+facet_grid(rows = vars(AnnualIncome))
 
 
 ```
+# Building a linear regression model for Monhtly income vs all variables
 
+* By building the linear regression model we found the following:
+
+** R-squared=0.9491; that means the the model is capable of explaining that 94.91% of the monthly income is associated with all the factors given in the data.
+
+Then looking at the variation inflation factor, we see that the department and job role variables are having VIF higher than 10, so in the next step we will remove these two variables.
 ```{r}
 case2_salary -> case2_salary_reg
 # First create model on all variables
@@ -448,6 +517,13 @@ summary(case2_salary_lm)
 # Then test for VIF
 vif(case2_salary_lm)
 ```
+# Removing the department and job role variables and then looking the performace of the model
+
+* By building the other linear regression model after removing the variables with high VIF, we found the following:
+
+** R-squared=0.9142; that means the the model is capable of explaining that 91.42% of the monthly income is associated with all the factors given in the data.
+
+Then again looking at the variation inflation factor, we see that the total working years and years at company variables are having VIF higher than 5, so in the next step we will remove these two variables.
 
 ```{r}
 case2_salary_reg[,-c(3,11)] -> case2_salary_reg.df
@@ -458,6 +534,14 @@ summary(case2_salary_lm)
 vif(case2_salary_lm)
 
 ```
+# Removing the total working years and years at company variables and then looking the performace of the model
+
+Even after removing the variables having variables with VIF higher than 5, the model is performing good.
+
+* By building the other linear regression model after removing the variables with high VIF, we found the following:
+
+** R-squared=0.9142; that means the the model is capable of explaining that 91.42% of the monthly income is associated with all the factors given in the data.
+
 ```{r}
 case2_salary_reg.df[,-c(17,20)] -> case2_salary_reg.df
 # create model on remaining variables
@@ -467,8 +551,25 @@ summary(case2_salary_lm)
 vif(case2_salary_lm)
 
 ```
-```{r}
+# Using StepWise Slection for feature selection
 
+Now that we have used multicollinearity to reduce to 22 parameters, we now will run Stepwise Feature Selection to find the 6 most influential variables and compare them to both what the Random Forest found as well as the prior Linear Regression.
+
+Important Factors that all have p-value <= 0.05:
+
+* BusinessTravel: Travel_Rarely
+* DistanceFromHome 
+* EducationField: Marketing
+* JobLevel
+* TotalWorkingYears
+* YearsWithCurrManager
+
+We can see the RMSE of this model is $1369.276
+
+And the Adjusted R-squared is 0.9119, which means an estimated 91.19% of the MonthlyIncome variable can be accounted for by this model.
+
+```{r}
+dim(case2_salary_reg.df)
 trainControl(method = "cv", number = 5) -> train.CV
 
 train(MonthlyIncome ~ .,
@@ -484,6 +585,13 @@ summary(case2.salary.stepwise)
 case2.salary.stepwise$results
 
 ```
+# Buliding a Random Forest model and Comparing to Linear Regression Model
+
+We will the variables that were selected by random forest feature selection to build the model.
+
+We found that, the Random Forest performs slightly better with an Adjusted R-squared of 0.9472 and the RMSE of $1069.555 as compared to Linear regression model.
+
+
 ```{r}
 
 train(MonthlyIncome ~ JobLevel + JobRole + TotalWorkingYears + YearsAtCompany + Age,
@@ -499,6 +607,13 @@ summary(case2_salary.stepwise.rf)
 case2_salary.stepwise.rf$results
 
 ```
+# Generating the predictions for both Linear regression and Random Forest Model on the training data
+
+* We will use the training data and make the predictions using the model and see which model is working better with lower RMSE(prediction error).
+
+** We found that the random forest model are making predictions with lower RMSE(prediction error)=0.1651 as compared to the linear regression model with RMSE(prediction error)=0.2112.
+
+
 ```{r}
 # generating predictions on test data
 case2$MonthlyIncome_LM <- predict(case2.salary.stepwise, newdata = case2)
@@ -513,6 +628,15 @@ case2.LM.RMSE
 case2.RF.RMSE=RMSE(case2$MonthlyIncome_RF, case2$MonthlyIncome) / mean(case2$MonthlyIncome)
 case2.RF.RMSE
 ```
+# Generating the predictions for both Linear regression and Random Forest Model on the original test data for salary
+
+We run the model on the test data sets that do not have the MonthlyIncome parameter
+
+* MonthlyIncome_LM = Predictions for Regression
+* MonthlyIncome_RF = Predictions for Random Forest
+
+We have saved the predictions of the original test data in the Salary_LM.csv and Salary_RF.csv
+
 ```{r}
 NoSalary.df=read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/DDSCaseStudy2CompSet-NoSalary.csv",header=TRUE)
 head(NoSalary.df)
@@ -523,7 +647,252 @@ head(NoSalary.df$MonthlyIncome_LM)
 NoSalary.df$MonthlyIncome_RF <- predict(case2_salary.stepwise.rf, newdata = NoSalary.df)
 head(NoSalary.df$MonthlyIncome_RF)
 
+output.LM=data.frame(Id=NoSalary.df$ID,NoSalary.df$MonthlyIncome_LM)
+output.RF=data.frame(Id=NoSalary.df$ID,NoSalary.df$MonthlyIncome_RF)
+
+head(output.LM)
+head(output.RF)
+
+write.csv(output.LM,file="Salary_LM.csv",row.names = FALSE)
+write.csv(output.RF,file="Salary_RF.csv",row.names = FALSE)
+
+
 ```
+# Model for Attrition
+
+Now we will focus on Attrition, first using K-Nearest Neighbor [KNN], and then comparing to a Random Forest model
+
+First we need to split the data into a training & testing set. 80% of our data will be used for the training set and will be used to create the model. The remaining 20% is for the test set, which will be used to validate actual values vs predicted values using our model. 
+
+We need to measure the models: 
+
+* Accuracy: correct results / all results
+* Sensitivity: correctly predicted Attrition:No / All actual "No" 
+* Specificity: correctly predicted Attrition:Yes / All actual "Yes" 
+```{r}
+dim(case2)
+case2_attrition.knn=case2[,-c(28,29,30,31,32,33)]
+str(case2_attrition.knn)
+attrition.partition <- createDataPartition(case2_attrition.knn$Attrition, p = 0.75, list = F)
+attrition.train <- case2_attrition.knn[attrition.partition,] 
+attrition.test <- case2_attrition.knn[-attrition.partition,]
+
+# validate train and test sets
+head(attrition.train)
+head(attrition.test)
+dim(attrition.train)
+dim(attrition.test)
+
+```
+# K-Nearest Algorithm for Attrition 
+Overall when we run the model on the test data set we achieve above 80% for all categories.
+
+       No Yes
+  No  180   2
+  Yes  27   8
+
+Accuracy : 0.8664
+Sensitivity : 0.8696        
+Specificity : 0.8000 
+
+```{r}
+set.seed(200)
+train.knn<- trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 50,
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE
+)
+
+# KNN on Training Set
+
+attrition.knn <- train(
+  Attrition ~ .,
+  data = attrition.train,
+  method = "knn",
+  metric = "Spec",
+  trControl = train.knn,
+  preProcess = c("center","scale"),
+  tuneLength = 20
+)
+
+# Adding predictions to Test Data
+predict(attrition.knn, newdata = attrition.test ) -> attrition.test$Attrition_KNN
+# creating confusion matrix
+confusionMatrix(
+  table(attrition.test$Attrition, attrition.test$Attrition_KNN )
+)
+
+```
+### Random Forest for Attrition
+
+The model Was very close for Accuracy and Sensitivity for KNN but Specificity category decreased. 
+
+      No Yes
+  No  179   3
+  Yes  26   9
+
+Accuracy : 0.8664 
+Sensitivity : 0.8732         
+Specificity : 0.7500
+
+```{r}
+
+set.seed(200)
+
+train.knn<- trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 50,
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE
+)
+train.forest<- trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats=25
+)
+metric="Accuracy"
+mtry <- sqrt(ncol(x))
+tunegrid <- expand.grid(.mtry=mtry)
+
+# Random Forest
+train(as.factor(Attrition) ~ .,
+  data = attrition.train,
+  method = "rf",
+  metric = "Accuracy",
+  trControl = train.forest
+ 
+  
+) -> attrition.rf
+
+predict(attrition.rf, newdata = attrition.test ) -> attrition.test$Attrition_RF
+# creating confusion matrix
+confusionMatrix(
+  table(attrition.test$Attrition, attrition.test$Attrition_RF )
+)
+
+```
+# Logistic Regression Model
+
+The accuracy and sensitivity is better and specificity is little decreased as compared to KNN model but better than the Random Forest Model.
+      No Yes
+  No  177   5
+  Yes  17   18
+
+Accuracy : 0.8986 
+Sensitivity : 0.9124          
+Specificity : 0.7826
+```{r}
+
+
+
+train.glm<- trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 10,
+)
+set.seed(200)
+attrition.glm.model <- train(as.factor(Attrition)~., attrition.train , method = 'glm',trControl = train.forest)
+train=case2_numeric
+glm.fit=glm(Attrition~.,data=train)
+#Predict
+attrition.glm.pred <- predict(attrition.glm.model,newdata=attrition.test)
+#Print confusion matrix
+confusionMatrix(
+  table(attrition.test$Attrition, attrition.glm.pred )
+)
+```
+### Predictions for Attrition
+
+*Validating KNN on Entire Training Data Set*
+
+For the prediction on the entire training set, we found the following results:
+
+
+       No Yes
+  No  722   8
+  Yes 103  37
+  
+Accuracy : 0.8724
+Sensitivity : 0.8752        
+Specificity : 0.8222
+
+```{r}
+
+# generating predictions on test data
+case2$Attrition_KNN <- predict(attrition.knn, newdata = case2)
+
+# creating confusion matrix for KNN
+confusionMatrix(
+  table(case2$Attrition, case2$Attrition_KNN )
+)
+
+
+```
+*Validating Random Forest on Entire Training Data Set*
+
+For the prediction on the entire training set, we found the following results:
+
+
+       No Yes
+  No  727   3
+  Yes  26 114
+
+Accuracy : 0.9667
+Sensitivity : 0.9655          
+Specificity : 0.9744 
+
+
+```{r}
+
+# generating predictions on test data
+case2$Attrition_RF <- predict(attrition.rf, newdata = case2)
+
+# creating confusion matrix for RF
+confusionMatrix(
+  table(case2$Attrition, case2$Attrition_RF )
+)
+
+
+
+```
+*Validating GLM on Entire Training Data Set*
+
+For the prediction on the entire training set, we found the following results:
+
+
+       No Yes
+  No  708   22
+  Yes  66 74
+
+Accuracy : 0.8966
+Sensitivity : 0.9124          
+Specificity : 0.7660
+
+
+```{r}
+
+# generating predictions on test data
+case2$Attrition_GLM <- predict(attrition.glm.model, newdata = case2)
+
+# creating confusion matrix for RF
+confusionMatrix(
+  table(case2$Attrition, case2$Attrition_GLM )
+)
+
+
+
+```
+# Reading the original test data for Attrition and generating the predictions of K-Nearest Neighbor model, Random Forest model, and Logistic Regression model
+
+* MonthlyIncome_KNN = Predictions for K-Nearest Neighbor
+* MonthlyIncome_RF = Predictions for Random Forest
+* MonthlyIncome_GLM = Predictions for Logistic Regression
+
+We have saved the predictions of the original test data in the Attrition_KNN.csv, Attrition_RF.csv and Attrition_GLM.csv
+
 ```{r}
 NoAttrition.df=read.csv("https://raw.githubusercontent.com/RashmiAPatel19/SMU_MSDS_6306_CaseStudy2_Spring2021/main/CaseStudy2CompSet%20No%20Attrition.csv",header=TRUE)
 head(NoAttrition.df)
@@ -532,9 +901,25 @@ dim(NoAttrition.df)
 
 ```
 ```{r}
-NoAttrition.df$MonthlyIncome_LM <- predict(case2.salary.stepwise, newdata = NoAttrition.df)
-head(NoAttrition.df$MonthlyIncome_LM)
-NoAttrition.df$MonthlyIncome_RF <- predict(case2_salary.stepwise.rf, newdata = NoAttrition.df)
-head(NoAttrition.df$MonthlyIncome_RF)
+# creating new attrition in original test data with KNN model predicted Attrition
+NoAttrition.df$Attrition_KNN <- predict(attrition.knn, NoAttrition.df)
+output.knn=data.frame(Id=NoAttrition.df$ID,NoAttrition.df$Attrition_KNN)
+
+# creating new attrition in original test data with Random Forest model predicted Attrition
+NoAttrition.df$Attrition_RF <- predict(attrition.rf, NoAttrition.df)
+output.rf=data.frame(Id=NoAttrition.df$ID,NoAttrition.df$Attrition_RF)
+
+# creating new attrition in original test data with Logistic Regression model predicted Attrition
+NoAttrition.df$Attrition_GLM <- predict(attrition.glm.model, NoAttrition.df)
+output.glm=data.frame(Id=NoAttrition.df$ID,NoAttrition.df$Attrition_GLM)
+
+head(output.knn)
+head(output.rf)
+head(output.glm)
+
+write.csv(output.knn,file="Attrition_KNN.csv",row.names = FALSE)
+write.csv(output.rf,file="Attrition_RF.csv",row.names = FALSE)
+write.csv(output.glm,file="Attrition_GLM.csv",row.names = FALSE)
+
 
 ```
