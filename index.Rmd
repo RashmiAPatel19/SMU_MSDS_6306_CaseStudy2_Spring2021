@@ -1,0 +1,9 @@
+---
+title: "Southern Methodist University Masters of Science in Data Science"
+author: "Rashmi Patel"
+date: "04/17/2021"
+output: html_document
+---
+
+# Introduction about myself
+My name is Rashmi Patel. I was born in Anand, Gujarat, India. I was briught up in Raipur, Chhattisgarh, India. I completed my undergraduate with 3.7 GPA in Bachelors of engineering with Computer Science and Engineering. I am very passionate about data mining, and analysis data. So I decided to pursue Masters of Science in Data Science. I am currently working as Website and Marketing Manager at Clovis Community College, Clovis, New Mexico. My hobbies are Cooking, Dancing, Painting, Skteching and exploring new places. 
